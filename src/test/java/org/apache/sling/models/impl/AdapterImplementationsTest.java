@@ -19,6 +19,9 @@
 package org.apache.sling.models.impl;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
@@ -35,8 +38,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.osgi.framework.BundleContext;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -320,6 +327,28 @@ class AdapterImplementationsTest {
 
         // ensure we don't have any registrations and no exception is thrown
         assertNull(underTest.getModelClassForResource(resource));
+    }
+
+    @Test
+    void testCacheIsUsedForModelClassForResource() {
+        Map<String, Object> propertyMap = new HashMap<>();
+        lenient().when(resource.getResourceType()).thenReturn("sling/rt/one");
+        lenient().when(resource.getResourceResolver()).thenReturn(resourceResolver);
+        lenient().when(resourceResolver.getPropertyMap()).thenReturn(propertyMap);
+        lenient().when(resourceResolver.getParentResourceType(resource)).thenReturn(null);
+        lenient().when(resourceResolver.getSearchPath()).thenReturn(new String[] {"/apps/", "/libs/"});
+
+        assertNull(underTest.getModelClassForResource(resource));
+
+        @SuppressWarnings("unchecked")
+        Map<Map<String, Class<?>>, Map<String, Object>> cache = (Map<Map<String, Class<?>>, Map<String, Object>>)
+                propertyMap.get("org.apache.sling.models.impl.AdapterImplementations.ModelClassCache");
+        assertNotNull(cache);
+        assertTrue(cache instanceof IdentityHashMap, "Expected the cache to be an IdentityHashMap");
+
+        assertNull(underTest.getModelClassForResource(resource));
+
+        verify(resourceResolver, times(1)).getSearchPath();
     }
 
     static final class NoneImplementationPicker implements ImplementationPicker {

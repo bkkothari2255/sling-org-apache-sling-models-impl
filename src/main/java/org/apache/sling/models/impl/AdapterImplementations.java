@@ -20,6 +20,8 @@ package org.apache.sling.models.impl;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,8 @@ import org.slf4j.LoggerFactory;
 final class AdapterImplementations {
 
     private static final Logger log = LoggerFactory.getLogger(AdapterImplementations.class);
+
+    private static final String CACHE_KEY = "org.apache.sling.models.impl.AdapterImplementations.ModelClassCache";
 
     private final ConcurrentMap<String, ConcurrentNavigableMap<String, ModelClass<?>>> adapterImplementations =
             new ConcurrentHashMap<>();
@@ -314,32 +318,55 @@ final class AdapterImplementations {
         return getModelClassForResource(resource, resourceTypeMappingsForResources);
     }
 
+    @SuppressWarnings("unchecked")
+    private static Map<Map<String, Class<?>>, Map<String, Object>> getModelClassCache(final ResourceResolver resolver) {
+        return (Map<Map<String, Class<?>>, Map<String, Object>>)
+                resolver.getPropertyMap().get(CACHE_KEY);
+    }
+
     protected static Class<?> getModelClassForResource(final Resource resource, final Map<String, Class<?>> map) {
         if (resource == null) {
             return null;
         }
         ResourceResolver resolver = resource.getResourceResolver();
         final String originalResourceType = resource.getResourceType();
+
+        Map<Map<String, Class<?>>, Map<String, Object>> cache = getModelClassCache(resolver);
+
+        if (cache == null) {
+            cache = new IdentityHashMap<>();
+            // Using IdentityHashMap prevent O(N) deep equality checks on large
+            // ConcurrentHashMaps!
+            resolver.getPropertyMap().put(CACHE_KEY, cache);
+        }
+
+        Map<String, Object> mapCache = cache.computeIfAbsent(map, k -> new HashMap<>());
+
+        Object cachedValue = mapCache.get(originalResourceType);
+        if (cachedValue != null) {
+            return cachedValue == Object.class ? null : (Class<?>) cachedValue;
+        }
         Class<?> modelClass = getClassFromResourceTypeMap(originalResourceType, map, resolver);
-        if (modelClass != null) {
-            return modelClass;
-        } else {
+        if (modelClass == null) {
             String resourceType = resolver.getParentResourceType(resource);
             while (resourceType != null) {
                 modelClass = getClassFromResourceTypeMap(resourceType, map, resolver);
                 if (modelClass != null) {
-                    return modelClass;
+                    break;
                 } else {
                     resourceType = resolver.getParentResourceType(resourceType);
                 }
             }
-            Resource resourceTypeResource = resolver.getResource(originalResourceType);
-            if (resourceTypeResource != null && !resourceTypeResource.getPath().equals(resource.getPath())) {
-                return getModelClassForResource(resourceTypeResource, map);
-            } else {
-                return null;
+            if (modelClass == null) {
+                Resource resourceTypeResource = resolver.getResource(originalResourceType);
+                if (resourceTypeResource != null
+                        && !resourceTypeResource.getPath().equals(resource.getPath())) {
+                    modelClass = getModelClassForResource(resourceTypeResource, map);
+                }
             }
         }
+        mapCache.put(originalResourceType, modelClass == null ? Object.class : modelClass);
+        return modelClass;
     }
 
     private static Class<?> getClassFromResourceTypeMap(
