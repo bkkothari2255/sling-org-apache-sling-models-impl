@@ -316,10 +316,33 @@ final class AdapterImplementations {
         return getModelClassForResource(resource, resourceTypeMappingsForResources);
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<Map<String, Class<?>>, Map<String, Object>> getModelClassCache(final ResourceResolver resolver) {
-        return (Map<Map<String, Class<?>>, Map<String, Object>>)
-                resolver.getPropertyMap().get(CACHE_KEY);
+    /**
+     * Encapsulates the nested map structure to simplify the caching logic.
+     * Methods are synchronized to prevent bucket corruption during multi-threaded integration tests
+     * that share a mocked ResourceResolver.
+     */
+    private static class RequestModelClassCache {
+        private final Map<Map<String, Class<?>>, Map<String, Object>> cache = new java.util.IdentityHashMap<>();
+
+        public synchronized Object get(Map<String, Class<?>> registryMap, String resourceType) {
+            Map<String, Object> innerCache = cache.get(registryMap);
+            return innerCache != null ? innerCache.get(resourceType) : null;
+        }
+
+        public synchronized void put(Map<String, Class<?>> registryMap, String resourceType, Class<?> modelClass) {
+            Map<String, Object> innerCache = cache.computeIfAbsent(registryMap, k -> new java.util.HashMap<>());
+            innerCache.put(resourceType, modelClass == null ? Object.class : modelClass);
+        }
+    }
+
+    private static RequestModelClassCache getModelClassCache(final ResourceResolver resolver) {
+        RequestModelClassCache cache =
+                (RequestModelClassCache) resolver.getPropertyMap().get(CACHE_KEY);
+        if (cache == null) {
+            cache = new RequestModelClassCache();
+            resolver.getPropertyMap().put(CACHE_KEY, cache);
+        }
+        return cache;
     }
 
     protected static Class<?> getModelClassForResource(final Resource resource, final Map<String, Class<?>> map) {
@@ -332,23 +355,16 @@ final class AdapterImplementations {
             return null;
         }
 
-        Map<Map<String, Class<?>>, Map<String, Object>> cache = getModelClassCache(resolver);
+        RequestModelClassCache cache = getModelClassCache(resolver);
 
-        if (cache == null) {
-            // Thread-safe Identity map to prevent O(N) deep equality checks on the massive map
-            cache = java.util.Collections.synchronizedMap(new java.util.IdentityHashMap<>());
-            resolver.getPropertyMap().put(CACHE_KEY, cache);
-        }
-
-        // Thread-safe inner map using standard equality for the Strings
-        Map<String, Object> mapCache = cache.computeIfAbsent(map, k -> new java.util.concurrent.ConcurrentHashMap<>());
-
-        Object cachedValue = mapCache.get(originalResourceType);
+        Object cachedValue = cache.get(map, originalResourceType);
         if (cachedValue != null) {
             return cachedValue == Object.class ? null : (Class<?>) cachedValue;
         }
+
         Class<?> modelClass = resolveModelClass(originalResourceType, resource, map, resolver);
-        mapCache.put(originalResourceType, modelClass == null ? Object.class : modelClass);
+
+        cache.put(map, originalResourceType, modelClass);
         return modelClass;
     }
 

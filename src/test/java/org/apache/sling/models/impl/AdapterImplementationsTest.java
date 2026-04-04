@@ -338,9 +338,7 @@ class AdapterImplementationsTest {
 
         assertNull(underTest.getModelClassForResource(resource));
 
-        @SuppressWarnings("unchecked")
-        Map<Map<String, Class<?>>, Map<String, Object>> cache = (Map<Map<String, Class<?>>, Map<String, Object>>)
-                propertyMap.get(AdapterImplementations.class.getName() + ".ModelClassCache");
+        Object cache = propertyMap.get(AdapterImplementations.class.getName() + ".ModelClassCache");
         assertNotNull(cache);
 
         assertNull(underTest.getModelClassForResource(resource));
