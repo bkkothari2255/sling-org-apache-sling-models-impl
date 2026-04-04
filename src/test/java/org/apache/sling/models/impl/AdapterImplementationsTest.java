@@ -319,7 +319,7 @@ class AdapterImplementationsTest {
 
     @Test
     void testResourceTypeRegistrationForResourceWithoutResourceType() {
-        lenient().when(resource.getResourceType()).thenReturn(null);
+        lenient().when(resource.getResourceType()).thenReturn("");
         lenient().when(resource.getResourceResolver()).thenReturn(resourceResolver);
         lenient().when(resourceResolver.getSearchPath()).thenReturn(new String[] {"/apps/", "/libs/"});
 

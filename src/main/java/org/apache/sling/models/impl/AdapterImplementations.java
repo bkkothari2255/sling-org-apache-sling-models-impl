@@ -328,7 +328,7 @@ final class AdapterImplementations {
         }
         ResourceResolver resolver = resource.getResourceResolver();
         final String originalResourceType = resource.getResourceType();
-        if (org.apache.commons.lang3.StringUtils.isEmpty(originalResourceType)) {
+        if (originalResourceType.isEmpty()) {
             return null;
         }
 
@@ -371,11 +371,9 @@ final class AdapterImplementations {
             resourceType = resolver.getParentResourceType(resourceType);
         }
 
-        if (originalResourceType != null) {
-            Resource resourceTypeResource = resolver.getResource(originalResourceType);
-            if (resourceTypeResource != null && !resourceTypeResource.getPath().equals(resource.getPath())) {
-                return getModelClassForResource(resourceTypeResource, map);
-            }
+        Resource resourceTypeResource = resolver.getResource(originalResourceType);
+        if (resourceTypeResource != null && !resourceTypeResource.getPath().equals(resource.getPath())) {
+            return getModelClassForResource(resourceTypeResource, map);
         }
 
         return null;
@@ -383,9 +381,6 @@ final class AdapterImplementations {
 
     private static Class<?> getClassFromResourceTypeMap(
             final String resourceType, final Map<String, Class<?>> map, final ResourceResolver resolver) {
-        if (resourceType == null) {
-            return null;
-        }
         Class<?> modelClass = map.get(resourceType);
         if (modelClass == null) {
             for (String searchPath : resolver.getSearchPath()) {
