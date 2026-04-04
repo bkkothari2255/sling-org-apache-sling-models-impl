@@ -20,8 +20,6 @@ package org.apache.sling.models.impl;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -330,17 +328,20 @@ final class AdapterImplementations {
         }
         ResourceResolver resolver = resource.getResourceResolver();
         final String originalResourceType = resource.getResourceType();
+        if (originalResourceType == null) {
+            return null;
+        }
 
         Map<Map<String, Class<?>>, Map<String, Object>> cache = getModelClassCache(resolver);
 
         if (cache == null) {
-            cache = new IdentityHashMap<>();
-            // Using IdentityHashMap prevent O(N) deep equality checks on large
-            // ConcurrentHashMaps!
+            // Thread-safe Identity map to prevent O(N) deep equality checks on the massive map
+            cache = java.util.Collections.synchronizedMap(new java.util.IdentityHashMap<>());
             resolver.getPropertyMap().put(CACHE_KEY, cache);
         }
 
-        Map<String, Object> mapCache = cache.computeIfAbsent(map, k -> new HashMap<>());
+        // Thread-safe inner map using standard equality for the Strings
+        Map<String, Object> mapCache = cache.computeIfAbsent(map, k -> new java.util.concurrent.ConcurrentHashMap<>());
 
         Object cachedValue = mapCache.get(originalResourceType);
         if (cachedValue != null) {
