@@ -328,7 +328,7 @@ final class AdapterImplementations {
         }
         ResourceResolver resolver = resource.getResourceResolver();
         final String originalResourceType = resource.getResourceType();
-        if (originalResourceType == null) {
+        if (org.apache.commons.lang3.StringUtils.isEmpty(originalResourceType)) {
             return null;
         }
 
