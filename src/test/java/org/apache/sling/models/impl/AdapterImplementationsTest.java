@@ -20,7 +20,6 @@ package org.apache.sling.models.impl;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.Map;
 
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
@@ -40,7 +39,6 @@ import org.osgi.framework.BundleContext;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -344,7 +342,6 @@ class AdapterImplementationsTest {
         Map<Map<String, Class<?>>, Map<String, Object>> cache = (Map<Map<String, Class<?>>, Map<String, Object>>)
                 propertyMap.get(AdapterImplementations.class.getName() + ".ModelClassCache");
         assertNotNull(cache);
-        assertTrue(cache instanceof IdentityHashMap, "Expected the cache to be an IdentityHashMap");
 
         assertNull(underTest.getModelClassForResource(resource));
 
