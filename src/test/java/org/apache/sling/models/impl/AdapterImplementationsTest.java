@@ -342,7 +342,7 @@ class AdapterImplementationsTest {
 
         @SuppressWarnings("unchecked")
         Map<Map<String, Class<?>>, Map<String, Object>> cache = (Map<Map<String, Class<?>>, Map<String, Object>>)
-                propertyMap.get("org.apache.sling.models.impl.AdapterImplementations.ModelClassCache");
+                propertyMap.get(AdapterImplementations.class.getName() + ".ModelClassCache");
         assertNotNull(cache);
         assertTrue(cache instanceof IdentityHashMap, "Expected the cache to be an IdentityHashMap");
 

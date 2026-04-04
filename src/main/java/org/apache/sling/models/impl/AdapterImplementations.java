@@ -52,7 +52,7 @@ final class AdapterImplementations {
 
     private static final Logger log = LoggerFactory.getLogger(AdapterImplementations.class);
 
-    private static final String CACHE_KEY = "org.apache.sling.models.impl.AdapterImplementations.ModelClassCache";
+    private static final String CACHE_KEY = AdapterImplementations.class.getName() + ".ModelClassCache";
 
     private final ConcurrentMap<String, ConcurrentNavigableMap<String, ModelClass<?>>> adapterImplementations =
             new ConcurrentHashMap<>();
