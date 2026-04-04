@@ -346,27 +346,36 @@ final class AdapterImplementations {
         if (cachedValue != null) {
             return cachedValue == Object.class ? null : (Class<?>) cachedValue;
         }
-        Class<?> modelClass = getClassFromResourceTypeMap(originalResourceType, map, resolver);
-        if (modelClass == null) {
-            String resourceType = resolver.getParentResourceType(resource);
-            while (resourceType != null) {
-                modelClass = getClassFromResourceTypeMap(resourceType, map, resolver);
-                if (modelClass != null) {
-                    break;
-                } else {
-                    resourceType = resolver.getParentResourceType(resourceType);
-                }
-            }
-            if (modelClass == null) {
-                Resource resourceTypeResource = resolver.getResource(originalResourceType);
-                if (resourceTypeResource != null
-                        && !resourceTypeResource.getPath().equals(resource.getPath())) {
-                    modelClass = getModelClassForResource(resourceTypeResource, map);
-                }
-            }
-        }
+        Class<?> modelClass = resolveModelClass(originalResourceType, resource, map, resolver);
         mapCache.put(originalResourceType, modelClass == null ? Object.class : modelClass);
         return modelClass;
+    }
+
+    private static Class<?> resolveModelClass(
+            final String originalResourceType,
+            final Resource resource,
+            final Map<String, Class<?>> map,
+            final ResourceResolver resolver) {
+        Class<?> modelClass = getClassFromResourceTypeMap(originalResourceType, map, resolver);
+        if (modelClass != null) {
+            return modelClass;
+        }
+
+        String resourceType = resolver.getParentResourceType(resource);
+        while (resourceType != null) {
+            modelClass = getClassFromResourceTypeMap(resourceType, map, resolver);
+            if (modelClass != null) {
+                return modelClass;
+            }
+            resourceType = resolver.getParentResourceType(resourceType);
+        }
+
+        Resource resourceTypeResource = resolver.getResource(originalResourceType);
+        if (resourceTypeResource != null && !resourceTypeResource.getPath().equals(resource.getPath())) {
+            return getModelClassForResource(resourceTypeResource, map);
+        }
+
+        return null;
     }
 
     private static Class<?> getClassFromResourceTypeMap(
