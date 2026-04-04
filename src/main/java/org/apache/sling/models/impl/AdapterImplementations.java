@@ -370,9 +370,11 @@ final class AdapterImplementations {
             resourceType = resolver.getParentResourceType(resourceType);
         }
 
-        Resource resourceTypeResource = resolver.getResource(originalResourceType);
-        if (resourceTypeResource != null && !resourceTypeResource.getPath().equals(resource.getPath())) {
-            return getModelClassForResource(resourceTypeResource, map);
+        if (originalResourceType != null) {
+            Resource resourceTypeResource = resolver.getResource(originalResourceType);
+            if (resourceTypeResource != null && !resourceTypeResource.getPath().equals(resource.getPath())) {
+                return getModelClassForResource(resourceTypeResource, map);
+            }
         }
 
         return null;
